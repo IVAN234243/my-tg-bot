@@ -3,7 +3,7 @@ import os
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from dotenv import load_dotenv
-from aiohttp import web  # для маленького веб-сервера
+from aiohttp import web
 
 # Загружаем токен из файла .env (для локальной разработки)
 load_dotenv()
@@ -16,7 +16,6 @@ dp = Dispatcher()
 # Команда /start
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    # Ссылка на вашу игру (замените на актуальную)
     web_app_info = types.WebAppInfo(url="https://ivan234243.github.io/face-runner-game/")
     keyboard = types.ReplyKeyboardMarkup(
         keyboard=[
@@ -45,12 +44,17 @@ async def run_web_server():
     await site.start()
     print(f"Web server started on port {port}")
 
-if __name__ == "__main__":
-    # Запускаем веб-сервер в фоне
-    loop = asyncio.get_event_loop()
-    loop.create_task(run_web_server())
+# Обёртка для запуска обоих сервисов одновременно
+async def main_wrapper():
+    # Запускаем веб-сервер как фоновую задачу
+    web_task = asyncio.create_task(run_web_server())
     # Запускаем бота
+    await main()
+    # Если бот завершится (например, из-за ошибки), отменяем веб-сервер
+    web_task.cancel()
+
+if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        asyncio.run(main_wrapper())
     except KeyboardInterrupt:
         print("Bot stopped")
